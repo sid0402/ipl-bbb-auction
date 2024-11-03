@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Match Centre</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        #selectionForms { display: none; }
+    </style>
+</head>
+<body>
+    <h1>Match Centre</h1>
+    <h2>{{ match.team1 }} vs {{ match.team2 }}</h2>
+
+    <h3>Current Score: {{ match.runs }}/{{ match.wickets }}</h3>
+    <p>Overs: {{ match.current_over }}.{{ match.current_ball }}</p>
+    <p>Match Phase: {{ match.match_phase }}</p>
+
+    <h3>Batting Scorecard</h3>
+    <table id="battingScorecard">
+        <thead>
+            <tr>
+                <th>Batsman</th>
+                <th>Runs</th>
+                <th>Balls</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for batsman, stats in match.scorecard['batsmen'].items() %}
+            <tr>
+                <td>{{ batsman }}</td>
+                <td>{{ stats['runs'] }}</td>
+                <td>{{ stats['balls'] }}</td>
+                <td>{% if stats['out'] %}Out{% else %}Not Out{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h3>Bowling Scorecard</h3>
+    <table id="bowlingScorecard">
+        <thead>
+            <tr>
+                <th>Bowler</th>
+                <th>Overs</th>
+                <th>Runs</th>
+                <th>Wickets</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for bowler, stats in match.scorecard['bowlers'].items() %}
+            <tr>
+                <td>{{ bowler }}</td>
+                <td>{{ stats['balls'] // 6 }}.{{ stats['balls'] % 6 }}</td>
+                <td>{{ stats['runs'] }}</td>
+                <td>{{ stats['out'] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div id="selectionForms" style="display: none;">
+        <div id="openersSelection" style="display: none;">
+            <h3>Select Opening Batsmen</h3>
+            <select id="strikerSelect">
+                {% for player in batting_team %}
+                    <option value="{{ player.name }}">{{ player.name }}</option>
+                {% endfor %}
+            </select>
+            <select id="nonStrikerSelect">
+                {% for player in batting_team %}
+                    <option value="{{ player.name }}">{{ player.name }}</option>
+                {% endfor %}
+            </select>
+            <button onclick="selectOpeners()">Select Openers</button>
+        </div>
+    
+        <div id="openingBowlerSelection" style="display: none;">
+            <h3>Select Opening Bowler</h3>
+            <select id="openingBowlerSelect">
+                {% for player in bowling_team %}
+                    <option value="{{ player.name }}">{{ player.name }}</option>
+                {% endfor %}
+            </select>
+            <button onclick="selectOpeningBowler()">Select Opening Bowler</button>
+        </div>
+    
+        <div id="batsmanSelection" style="display: none;">
+            <h3>Select Next Batsman</h3>
+            <select id="batsmanSelect">
+                {% for player in batting_team %}
+                    <option value="{{ player.name }}">{{ player.name }}</option>
+                {% endfor %}
+            </select>
+            <button onclick="selectPlayer('batsman')">Select Batsman</button>
+        </div>
+    
+        <div id="bowlerSelection" style="display: none;">
+            <h3>Select Next Bowler</h3>
+            <select id="bowlerSelect">
+                {% for player in bowling_team %}
+                    <option value="{{ player.name }}">{{ player.name }}</option>
+                {% endfor %}
+            </select>
+            <button onclick="selectPlayer('bowler')">Select Bowler</button>
+        </div>
+    </div>
+
+    <div id="inningsCompleted" style="display: none;">
+        <h3>Innings Completed</h3>
+        <div id="matchCompleted"></div>
+        <div id="nextInnings" style="display: none;">
+            <p>First Innings Completed</p>
+            <p>Score: <span id="firstInningsScore"></span></p>
+            <button onclick="startNextInnings()">Start Next Innings</button>
+        </div>
+    </div>
+
+    <script>
+        function checkForUserInput() {
+            fetch('/check_match_state/{{ match_number }}')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.needsInput) {
+                        document.getElementById('selectionForms').style.display = 'block';
+                        document.getElementById('openersSelection').style.display = data.inputType === 'openers' ? 'block' : 'none';
+                        document.getElementById('openingBowlerSelection').style.display = data.inputType === 'opening_bowler' ? 'block' : 'none';
+                        document.getElementById('batsmanSelection').style.display = data.inputType === 'batsman' ? 'block' : 'none';
+                        document.getElementById('bowlerSelection').style.display = data.inputType === 'bowler' ? 'block' : 'none';
+                    } else {
+                        document.getElementById('selectionForms').style.display = 'none';
+                        updateMatchState();
+                    }
+                });
+        }
+
+        function updateMatchState() {
+            fetch('/get_match_state/{{ match_number }}')
+                .then(response => response.json())
+                .then(data => {
+                    // Update the match state elements
+                    document.querySelector('h3').textContent = `Current Score: ${data.runs}/${data.wickets}`;
+                    document.querySelector('p:nth-of-type(1)').textContent = `Overs: ${data.current_over}.${data.current_ball}`;
+                    document.querySelector('p:nth-of-type(2)').textContent = `Match Phase: ${data.match_phase}`;
+                    
+                    // Update scorecards
+                    updateScorecard('batsmen', data.scorecard.batsmen);
+                    updateScorecard('bowlers', data.scorecard.bowlers);
+
+                    console.log(data)
+
+                    // Check if innings is completed
+                    if (data.innings_completed) {
+                        document.getElementById('inningsCompleted').style.display = 'block';
+                        if (data.win) {
+                            winHtml = 
+                            `
+                            <p>Match Completed</p>
+                            <p>Winner: ${data.win}</p>
+                            <p>Loser: ${data.loss}</p>
+                            <a href="/user_matches_page">back</a>
+                            `
+                            //document.getElementById('matchCompleted').style.display = 'block';
+                            document.getElementById('nextInnings').style.display = 'none';
+                            //document.getElementById('winner').textContent = data.win;
+                            //document.getElementById('loser').textContent = data.loss;
+                            document.getElementById('matchCompleted').innerHTML = winHtml;
+                        } else {
+                            document.getElementById('matchCompleted').style.display = 'none';
+                            document.getElementById('nextInnings').style.display = 'block';
+                            document.getElementById('firstInningsScore').textContent = `${data.runs}/${data.wickets}`;
+                        }
+                    } else {
+                        document.getElementById('inningsCompleted').style.display = 'none';
+                    }
+
+                    // Schedule the next update
+                    if (!data.win) {
+                        setTimeout(checkForUserInput, 5000);
+                    }
+                });
+        }
+
+        function updateScorecard(type, data) {
+            const table = document.getElementById(type === 'batsmen' ? 'battingScorecard' : 'bowlingScorecard');
+            const tbody = table.querySelector('tbody');
+            tbody.innerHTML = '';
+            for (const [player, stats] of Object.entries(data)) {
+                const row = document.createElement('tr');
+                if (type === 'batsmen') {
+                    row.innerHTML = `
+                        <td>${player}</td>
+                        <td>${stats.runs}</td>
+                        <td>${stats.balls}</td>
+                        <td>${stats.out ? 'Out' : 'Not Out'}</td>
+                    `;
+                } else {
+                    row.innerHTML = `
+                        <td>${player}</td>
+                        <td>${Math.floor(stats.balls / 6)}.${stats.balls % 6}</td>
+                        <td>${stats.runs}</td>
+                        <td>${stats.out}</td>
+                    `;
+                }
+                tbody.appendChild(row);
+            }
+        }
+
+        function selectOpeners() {
+            const striker = document.getElementById('strikerSelect').value;
+            const nonStriker = document.getElementById('nonStrikerSelect').value;
+            fetch('/select_player/{{ match_number }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ type: 'openers', striker: striker, non_striker: nonStriker }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    checkForUserInput();
+                } else {
+                    alert('Error selecting openers. Please try again.');
+                }
+            });
+        }
+
+        function selectOpeningBowler() {
+            const bowler = document.getElementById('openingBowlerSelect').value;
+            fetch('/select_player/{{ match_number }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ type: 'opening_bowler', bowler: bowler }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    checkForUserInput();
+                } else {
+                    alert('Error selecting opening bowler. Please try again.');
+                }
+            });
+        }
+
+        function startNextInnings() {
+            fetch('/start_next_innings/{{ match_number }}', {
+                method: 'POST',
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updatePlayerLists(data.userBatting, data.userBowling);
+                    checkForUserInput();
+                } else {
+                    alert('Error starting next innings. Please try again.');
+                }
+            });
+        }
+
+        function updatePlayerLists(userBatting, userBowling) {
+            // Update the player lists based on the new innings
+            fetch('/get_player_lists/{{ match_number }}')
+                .then(response => response.json())
+                .then(data => {
+                    updateSelectOptions('strikerSelect', data.battingTeam);
+                    updateSelectOptions('nonStrikerSelect', data.battingTeam);
+                    updateSelectOptions('batsmanSelect', data.battingTeam);
+                    updateSelectOptions('openingBowlerSelect', data.bowlingTeam);
+                    updateSelectOptions('bowlerSelect', data.bowlingTeam);
+                });
+        }
+
+        function updateSelectOptions(selectId, players) {
+            const select = document.getElementById(selectId);
+            select.innerHTML = '';
+            players.forEach(player => {
+                const option = document.createElement('option');
+                option.value = player.name;
+                option.textContent = player.name;
+                select.appendChild(option);
+            });
+        }
+
+        function selectPlayer(type) {
+            fetch('/get_match_state/{{ match_number }}')
+                .then(response => response.json())
+                .then(data => {
+                    document.querySelector('h3').textContent = `Current Score: ${data.runs}/${data.wickets}`;
+                    document.querySelector('p:nth-of-type(1)').textContent = `Overs: ${data.current_over}.${data.current_ball}`;
+                    document.querySelector('p:nth-of-type(2)').textContent = `Match Phase: ${data.match_phase}`;
+                    updateScorecard('batsmen', data.scorecard.batsmen);
+                    updateScorecard('bowlers', data.scorecard.bowlers);
+                });
+            const selectElement = document.getElementById(type + 'Select');
+            const selectedPlayer = selectElement.value;
+            fetch('/select_player/{{ match_number }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ type: type, player: selectedPlayer }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    checkForUserInput();
+                } else {
+                    alert('Error selecting player. Please try again.');
+                }
+            });
+        }
+
+        // Initial check when the page loads
+        checkForUserInput();
+    </script>
+</body>
+</html>

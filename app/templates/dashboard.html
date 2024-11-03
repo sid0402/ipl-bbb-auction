@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>League Dashboard</title>
+</head>
+<body>
+    <h1>Welcome to the season {{year}}</h1>
+    <a href="{{ url_for('all_matches') }}">View all games</a>
+    <a href="{{ url_for('user_matches_page') }}">View {{ team }} games</a>
+    <a href="{{ url_for('retain_players') }}"> Start Auction</a>
+</body>
+</html>

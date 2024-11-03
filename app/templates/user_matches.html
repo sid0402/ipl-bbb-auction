@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Your Matches</title>
+    <style>
+        .disabled {
+            color: gray;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Your Matches (<span id="user-team"></span>)</h1>
+    <ul id="match-list"></ul>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/user_matches')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('user-team').textContent = data.user_team;
+                    const matchList = document.getElementById('match-list');
+                    
+                    data.matches.forEach((match, index) => {
+                        const li = document.createElement('li');
+                        const matchNumber = match[0];
+                        const isAccessible = data.completed_matches.includes(matchNumber) || 
+                                             matchNumber === data.next_available_match;
+
+                        li.innerHTML = `
+                            Match ${matchNumber}: ${match[1]} vs ${match[2]}
+                            ${isAccessible 
+                                ? `<a href="/match_centre/${matchNumber}">Go to Match Centre</a>`
+                                : `<span class="disabled">Go to Match Centre (Complete previous matches first)</span>`
+                            }
+                        `;
+                        matchList.appendChild(li);
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>League Matches</title>
+</head>
+<body>
+    <h1>League Matches</h1>
+    <ul>
+    {% for match in matches %}
+        <li>{{ match[0] }} vs {{ match[1] }}</li>
+    {% endfor %}
+    </ul>
+    <a href="{{ url_for('simulate_league') }}">Simulate League</a>
+</body>
+</html>

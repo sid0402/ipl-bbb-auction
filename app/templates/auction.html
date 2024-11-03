@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cricket Auction</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .player-card, .budget-info, .bought-players {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .bid-form {
+            margin-top: 20px;
+        }
+        .flash-messages {
+            list-style-type: none;
+            padding: 0;
+        }
+        .flash-message {
+            background-color: #f0f0f0;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Cricket Auction</h1>
+    
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul class="flash-messages">
+                {% for message in messages %}
+                    <li class="flash-message">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    {% if player %}
+        <div class="player-card">
+            <h2>Current Player: {{ player.name }}</h2>
+            <p>Role: {{ player.role }}</p>
+            <p>Overall Rating: {{ player.overall_rating }}</p>
+            <p>Potential: {{player.potential}}</p>
+            <!-- Add more player details as needed -->
+        </div>
+
+        <form class="bid-form" method="POST">
+            <form class="bid-form" method="POST">
+                <input type="hidden" name="player_id" value="{{ player.id }}">
+            
+                <!-- Show the highest bid from other teams -->
+                <p>Highest bid from {{ highest_other_bid_team }}: {{ highest_other_bid }}</p>
+            
+                <!-- Ask the user to either Buy or Pass -->
+                <p>Do you want to buy {{ player.name }} for {{ highest_other_bid + 1 }}?</p>
+                
+                <button type="submit" name="choice" value="buy">Buy</button>
+                <button type="submit" name="choice" value="pass">Pass</button>            
+
+                <button type="submit" name="simulate_rest" value="1">Simulate Rest of Auction</button>
+        </form>
+
+        <div class="budget-info">
+            <h3>Remaining Budgets</h3>
+            <table>
+                <tr>
+                    <th>Team</th>
+                    <th>Budget</th>
+                </tr>
+                {% for team, budget in budgets.items() %}
+                    {% if team != 'Out of League' %}
+                        <tr>
+                            <td>{{ team }}</td>
+                            <td>{{ budget }}</td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+            </table>
+        </div>
+
+        <div class="bought-players">
+            <h3>Players Bought</h3>
+            {% for team, players in bought_players.items() %}
+                <h4>{{ team }}</h4>
+                <ul>
+                    {% for player in players %}
+                        <li>{{ player.name }} ({{ player.role }})</li>
+                    {% endfor %}
+                </ul>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No more players to auction.</p>
+    {% endif %}
+</body>
+</html>

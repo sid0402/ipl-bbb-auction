@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>League Standings</title>
+</head>
+<body>
+    <h1>League Standings</h1>
+    <table>
+        <tr>
+            <th>Team</th>
+            <th>Games</th>
+            <th>Points</th>
+        </tr>
+    {% for team, stats in standings.items() %}
+        <tr>
+            <td>{{ team }}</td>
+            <td>{{ stats.games }}</td>
+            <td>{{ stats.points }}</td>
+        </tr>
+    {% endfor %}
+    </table>
+    <a href="{{ url_for('simulate_playoffs') }}">Simulate Playoffs</a>
+</body>
+</html>

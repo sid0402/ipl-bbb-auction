@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Choose Playing XI</title>
+    <style>
+        .player-list {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .player-card {
+            border: 1px solid #ccc;
+            margin: 5px;
+            padding: 10px;
+            width: 200px;
+        }
+        .selected {
+            background-color: #e0ffe0;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Choose Playing XI</h1>
+    <form id="playing-eleven-form" action="{{ url_for('choose_playing_eleven', match_number=match_number) }}" method="post">
+        <div class="player-list">
+            {% for player in player_squad %}
+            <div class="player-card" data-player-id="{{ player.id }}">
+                <input type="checkbox" name="players" value="{{ player.name }}" id="player-{{ player.id }}">
+                <label for="player-{{ player.id }}">
+                    <h3>{{ player.name }}</h3>
+                    <p>Role: {{ player.role }}</p>
+                    <p>Batting: {{ player.batting_rating }}</p>
+                    <p>Bowling: {{ player.bowling_rating }}</p>
+                </label>
+            </div>
+            {% endfor %}
+        </div>
+        <p id="selection-count">Selected: 0/11</p>
+        <input type="submit" value="Confirm Playing XI" id="submit-button" disabled>
+    </form>
+
+    <script>
+        $(document).ready(function() {
+            let selectedCount = 0;
+            
+            $('.player-card').click(function() {
+                const checkbox = $(this).find('input[type="checkbox"]');
+                checkbox.prop('checked', !checkbox.prop('checked'));
+                $(this).toggleClass('selected');
+                
+                selectedCount = $('input[name="players"]:checked').length;
+                $('#selection-count').text(`Selected: ${selectedCount}/11`);
+                
+                $('#submit-button').prop('disabled', selectedCount !== 11);
+            });
+
+            $('#playing-eleven-form').submit(function(e) {
+                if (selectedCount !== 11) {
+                    e.preventDefault();
+                    alert('You must select exactly 11 players');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

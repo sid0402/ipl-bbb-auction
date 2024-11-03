@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>League Results</title>
+</head>
+<body>
+    <h1>League Results</h1>
+    <ul>
+    {% for result in results %}
+        <li>{{ result }}</li>
+    {% endfor %}
+    </ul>
+    <a href="{{ url_for('view_standings') }}">View Standings</a>
+</body>
+</html>

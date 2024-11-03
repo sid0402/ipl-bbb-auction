@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retain Players</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .player-list {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .player-card {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 5px;
+            width: 200px;
+        }
+        .flash-messages {
+            list-style-type: none;
+            padding: 0;
+        }
+        .flash-message {
+            background-color: #f0f0f0;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Retain Players</h1>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul class="flash-messages">
+                {% for message in messages %}
+                    <li class="flash-message">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    <p>You can retain up to {{ max_retentions }} players</p>
+
+    <form method="POST">
+        <div class="player-list">
+            {% for player in players %}
+                <div class="player-card">
+                    <input type="checkbox" name="retained_players" value="{{ player.playerId }}" id="player-{{ player.id }}">
+                    <label for="player-{{ player.playerId }}">
+                        <h3>{{ player.name }}</h3>
+                        <p>Role: {{ player.role }}</p>
+                        <p>Nationality: {{ player.nationality }}</p>
+                        <p>Overall Rating: {{ '%0.2f'| format(player.overall_rating) }}</p>
+                    </label>
+                </div>
+            {% endfor %}
+        </div>
+        <button type="submit">Confirm Retentions</button>
+    </form>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkboxes = document.querySelectorAll('input[name="retained_players"]');
+            const maxRetentions = {{ max_retentions }};
+            const maxOverseas = {{ max_overseas }};
+
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const selectedPlayers = document.querySelectorAll('input[name="retained_players"]:checked');
+                    const selectedOverseas = Array.from(selectedPlayers).filter(player => 
+                        player.nextElementSibling.textContent.includes('Nationality: overseas')
+                    ).length;
+
+                    if (selectedPlayers.length > maxRetentions) {
+                        this.checked = false;
+                        alert(`You can only retain up to ${maxRetentions} players.`);
+                    } else if (selectedOverseas > maxOverseas) {
+                        this.checked = false;
+                        alert(`You can only retain up to ${maxOverseas} overseas players.`);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
