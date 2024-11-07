@@ -2,14 +2,103 @@
 <html>
 <head>
     <title>League Matches</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script type="text/javascript">
+        let simulateClicked = false;
+
+        function fetchCurrentStatus() {
+            if (!simulateClicked) return;
+
+            $.ajax({
+                url: "/api/current_status",
+                method: "GET",
+                success: function(data) {
+                    updateMatches(data.matches);
+                    updateStandings(data.standings);
+                },
+                error: function() {
+                    console.log("Error fetching match status.");
+                }
+            });
+        }
+
+        function updateMatches(matches) {
+            matches.forEach(match => {
+                const matchElement = document.getElementById(`match-${match.match_number}`);
+                
+                if (matchElement) {
+                    if (match.winner) {
+                        // Show as link if the match has a result
+                        matchElement.innerHTML = `<a href="/match_center/${match.match_number}">
+                            ${match.match_number}: ${match.team1} vs ${match.team2} - Winner: ${match.winner}
+                        </a>`;
+                    } else {
+                        // Show as plain text if the match hasn't been completed
+                        matchElement.innerHTML = `${match.match_number}: ${match.team1} vs ${match.team2} - Winner: TBD`;
+                    }
+                } else {
+                    console.log(`Match element not found for match number ${match.match_number}`);
+                }
+            });
+        }
+
+        function updateStandings(standings) {
+            let standingsHtml = "<tr><th>Team</th><th>Games</th><th>Points</th></tr>";
+
+            standings.forEach(entry => {
+                standingsHtml += `<tr><td>${entry.team}</td><td>${entry.games}</td><td>${entry.points}</td></tr>`;
+            });
+
+            document.getElementById("standings-table").innerHTML = standingsHtml;
+        }
+
+        function startSimulation() {
+            simulateClicked = true;
+
+            // Trigger the league simulation on the server
+            $.ajax({
+                url: "{{ url_for('simulate_league') }}",
+                method: "GET",
+                success: function() {
+                    fetchCurrentStatus(); // Initial fetch
+                },
+                error: function() {
+                    console.log("Error starting league simulation.");
+                }
+            });
+
+            // Start polling for updates every 5 seconds
+            setInterval(fetchCurrentStatus, 5000);
+        }
+
+        $(document).ready(function() {
+            $('#simulate-league-btn').click(startSimulation);
+        });
+    </script>
 </head>
 <body>
     <h1>League Matches</h1>
-    <ul>
-    {% for match in matches %}
-        <li>{{ match[0] }} vs {{ match[1] }}</li>
+
+    {% for week, matches in weeks.items() %}
+        <h2>Week {{ week }}</h2>
+        <ul>
+            {% for day, team1, team2, match_number in matches %}
+                <li id="match-{{ match_number }}">
+                    {{ match_number }}: {{ team1 }} vs {{ team2 }} - Winner: TBD
+                </li>
+            {% endfor %}
+        </ul>
     {% endfor %}
-    </ul>
-    <a href="{{ url_for('simulate_league') }}">Simulate League</a>
+
+    <button id="simulate-league-btn">Simulate League</button>
+
+    <h1>League Standings</h1>
+    <table id="standings-table">
+        <tr>
+            <th>Team</th>
+            <th>Games</th>
+            <th>Points</th>
+        </tr>
+    </table>
 </body>
 </html>

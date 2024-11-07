@@ -8,7 +8,7 @@ from user import User
 import pickle
 from db_psql.insertion import insert_player, insert_player_stats, insert_player_cpts, insert_schedule,update_season_stats, clear_schedule, retire_players, increment_age_for_all_players
 from db_psql.reading import get_team_players, get_match_details, get_user_matches
-
+import math
 
 class League():
     def __init__(self, user, year):
@@ -42,6 +42,7 @@ class League():
 
          
     def makeSchedule(self):
+        clear_schedule()
         schedule = []
         teams = [x for x in self.teams if x!='Out of League']
         for i in range(len(teams)):
@@ -50,9 +51,16 @@ class League():
                 schedule.append([teams[i], teams[j], user_team])
                 schedule.append([teams[j], teams[i], user_team])
         random.shuffle(schedule)
+        num_weeks = math.ceil(len(schedule) / 9)
         for i,match in enumerate(schedule):
+            week = i // 9 + 1
+            day_index = i % 9
+            match.append(week)
+            match.append(day_index)
             match.append(i+1)
+
         self.matches = len(schedule)
+        print(self.matches)
         insert_schedule(schedule)
         
     def simulateUntil(self, match_number=-1):

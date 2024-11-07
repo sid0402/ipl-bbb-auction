@@ -215,7 +215,7 @@ def get_all_matches():
     
     try:
         query = """
-            SELECT match_number, team1, team2, user_team
+            SELECT match_number, team1, team2, user_team, week, day
             FROM schedule;
         """
         

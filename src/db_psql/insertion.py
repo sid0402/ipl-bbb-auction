@@ -151,13 +151,13 @@ def insert_schedule(schedule):
     
     try:
         insert_query = """
-            INSERT INTO schedule (match_number, team1, team2, user_team)
-            VALUES (%s, %s, %s, %s);
+            INSERT INTO schedule (match_number, team1, team2, user_team, week, day)
+            VALUES (%s, %s, %s, %s, %s, %s);
         """
         
         for match in schedule:
             print(match)         
-            cursor.execute(insert_query, (match[3], match[0], match[1], match[2]))
+            cursor.execute(insert_query, (match[5], match[0], match[1], match[2], match[3], match[4]))
         
         conn.commit()
         print(f"Inserted {len(schedule)} matches into the schedule table.")
